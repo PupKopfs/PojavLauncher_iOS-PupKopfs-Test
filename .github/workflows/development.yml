@@ -46,18 +46,23 @@ jobs:
             xcodegen generate
           fi
 
-          # Explicitly pass PLATFORM=2 (iOS) so gmake builds for iPhone instead of macOS
-          gmake PLATFORM=2 natives || true
-          
-          # Debug & ensure libawt_xawt.dylib is in Natives/build/
-          mkdir -p Natives/build
-          FOUND_DYLIB=$(find . -name "libawt_xawt.dylib" | head -n 1)
-          echo "Found libawt_xawt.dylib at: $FOUND_DYLIB"
-          if [ -n "$FOUND_DYLIB" ] && [ ! -f "Natives/build/libawt_xawt.dylib" ]; then
-            cp "$FOUND_DYLIB" Natives/build/libawt_xawt.dylib
-          fi
+          # 1. Build Natives (already confirmed 100% working on Intel!)
+          gmake PLATFORM=2 natives
 
-          # Run jre target without hiding errors so we see exact output if anything is missing
+          # 2. Show Makefile jre section & check what is inside artifacts/java_runtimes
+          echo "=== Makefile lines 255-295 ==="
+          sed -n '255,295p' Makefile || true
+          echo "=== Contents of Natives/build ==="
+          ls -la Natives/build || true
+          echo "=== Contents of artifacts ==="
+          ls -laR artifacts || true
+
+          # 3. Ensure target java_runtimes/lib directories exist so cp doesn't fail on missing folders
+          mkdir -p artifacts/java_runtimes/java-8-openjdk/lib
+          mkdir -p artifacts/java_runtimes/java-17-openjdk/lib
+          mkdir -p artifacts/java_runtimes/java-21-openjdk/lib
+
+          # 4. Run jre target
           gmake PLATFORM=2 jre
 
       - name: Build PojavLauncher & Package IPA
