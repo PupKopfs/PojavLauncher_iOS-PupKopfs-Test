@@ -1,4 +1,4 @@
-name: PojavLauncher Dev
+name: Build PojavLauncher iOS IPA
 
 on:
   workflow_dispatch:
@@ -15,9 +15,12 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install build dependencies (XcodeGen & ldid)
+      - name: Install build dependencies & fix /opt/homebrew path
         run: |
-          brew install xcodegen ldid cmake ninja || true
+          brew install make xcodegen ldid cmake ninja || true
+          sudo mkdir -p /opt/homebrew/bin
+          sudo ln -sf "$(which gmake)" /opt/homebrew/bin/gmake
+          sudo ln -sf "$(which ldid)" /opt/homebrew/bin/ldid
 
       - name: Build PojavLauncher & Package IPA
         run: |
@@ -28,15 +31,15 @@ jobs:
             xcodegen generate
           fi
 
-          # 2. Download JRE 8, 17, 21 & build using PojavLauncher's Makefile if available
+          # 2. Run Makefile setup/deploy if present
           if [ -f "Makefile" ]; then
-            make deploy || make package || make all || true
+            gmake deploy || gmake package || gmake all || true
           fi
 
           # 3. Check if Makefile already produced an .ipa
           FOUND_IPA=$(find . -maxdepth 4 -name "*.ipa" | head -n 1)
           
-          # 4. If no .ipa yet, build specifically with the iOS SDK & bundle JREs
+          # 4. Build specifically with the iOS SDK & bundle JREs
           if [ -z "$FOUND_IPA" ]; then
             xcodebuild \
               -project PojavLauncher.xcodeproj \
