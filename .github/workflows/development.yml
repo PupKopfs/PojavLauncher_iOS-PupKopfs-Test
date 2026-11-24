@@ -15,63 +15,58 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Run repo setup scripts if present
+      - name: Install build dependencies (XcodeGen & ldid)
         run: |
-          if [ -f "scripts/setup.sh" ]; then bash scripts/setup.sh; fi
-          if [ -f "setup.sh" ]; then bash setup.sh; fi
-          if [ -f "Makefile" ] && grep -q "deps:" Makefile; then make deps; fi
-          if [ -f "Podfile" ]; then pod install --repo-update; fi
+          brew install xcodegen ldid cmake ninja || true
 
-      - name: Build and Package iOS IPA
+      - name: Build PojavLauncher & Package IPA
         run: |
           set -e
           
-          # Automatically find .xcworkspace or .xcodeproj
-          WORKSPACE=$(find . -maxdepth 3 -name "*.xcworkspace" ! -path "*xcodeproj*" | head -n 1)
-          PROJECT=$(find . -maxdepth 3 -name "*.xcodeproj" | head -n 1)
-
-          if [ -n "$WORKSPACE" ]; then
-            TARGET_FLAG="-workspace"
-            TARGET_PATH="$WORKSPACE"
-          elif [ -n "$PROJECT" ]; then
-            TARGET_FLAG="-project"
-            TARGET_PATH="$PROJECT"
-          else
-            echo "Error: No Xcode project or workspace found."
-            exit 1
+          # 1. Generate Xcode project if project.yml exists
+          if [ -f "project.yml" ]; then
+            xcodegen generate
           fi
 
-          # Automatically detect the first Scheme
-          SCHEME=$(xcodebuild $TARGET_FLAG "$TARGET_PATH" -list -json | python3 -c "import sys, json; data = json.load(sys.stdin); key = 'workspace' if 'workspace' in data else 'project'; print(data[key]['schemes'][0])")
-          echo "Building Target: $TARGET_PATH | Scheme: $SCHEME"
+          # 2. Download JRE 8, 17, 21 & build using PojavLauncher's Makefile if available
+          if [ -f "Makefile" ]; then
+            make deploy || make package || make all || true
+          fi
 
-          # Compile and archive for iOS arm64 on the Intel runner
-          xcodebuild $TARGET_FLAG "$TARGET_PATH" \
-            -scheme "$SCHEME" \
-            -configuration Release \
-            -sdk iphoneos \
-            -destination 'generic/platform=iOS' \
-            -archivePath "$RUNNER_TEMP/App.xcarchive" \
-            ARCHS=arm64 \
-            ONLY_ACTIVE_ARCH=NO \
-            EXCLUDED_ARCHS=x86_64 \
-            CODE_SIGN_IDENTITY="" \
-            CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            clean archive
-
-          # Package into an unsigned .ipa (avoids Apple timestamp server timeouts)
-          mkdir -p "$RUNNER_TEMP/Payload"
-          APP_BUNDLE=$(find "$RUNNER_TEMP/App.xcarchive/Products/Applications" -maxdepth 1 -name "*.app" | head -n 1)
-          cp -r "$APP_BUNDLE" "$RUNNER_TEMP/Payload/"
+          # 3. Check if Makefile already produced an .ipa
+          FOUND_IPA=$(find . -maxdepth 4 -name "*.ipa" | head -n 1)
           
-          codesign --force --deep --sign - --timestamp=none "$RUNNER_TEMP/Payload/"*.app
-          
-          cd "$RUNNER_TEMP"
-          zip -qr "$GITHUB_WORKSPACE/Output.ipa" Payload
+          # 4. If no .ipa yet, build specifically with the iOS SDK & bundle JREs
+          if [ -z "$FOUND_IPA" ]; then
+            xcodebuild \
+              -project PojavLauncher.xcodeproj \
+              -scheme PojavLauncher \
+              -configuration Release \
+              -sdk iphoneos \
+              -arch arm64 \
+              ONLY_ACTIVE_ARCH=NO \
+              SUPPORTED_PLATFORMS=iphoneos \
+              EFFECTIVE_PLATFORM_NAME=-iphoneos \
+              CODE_SIGN_IDENTITY="" \
+              CODE_SIGNING_REQUIRED=NO \
+              CODE_SIGNING_ALLOWED=NO \
+              CONFIGURATION_BUILD_DIR="$RUNNER_TEMP/Build" \
+              clean build
 
-      - name: Upload IPA Artifact
+            mkdir -p "$RUNNER_TEMP/Payload"
+            APP_BUNDLE=$(find "$RUNNER_TEMP/Build" -maxdepth 2 -name "*.app" | head -n 1)
+            cp -r "$APP_BUNDLE" "$RUNNER_TEMP/Payload/"
+            
+            codesign --force --deep --sign - --timestamp=none "$RUNNER_TEMP/Payload/"*.app
+            
+            cd "$RUNNER_TEMP"
+            zip -qr "$GITHUB_WORKSPACE/PojavLauncher.ipa" Payload
+          else
+            cp "$FOUND_IPA" "$GITHUB_WORKSPACE/PojavLauncher.ipa"
+          fi
+
+      - name: Upload PojavLauncher IPA
         uses: actions/upload-artifact@v4
         with:
-          name: iOS-App-IPA
-          path: ${{ github.workspace }}/Output.ipa
+          name: PojavLauncher-iOS-IPA
+          path: ${{ github.workspace }}/PojavLauncher.ipa
