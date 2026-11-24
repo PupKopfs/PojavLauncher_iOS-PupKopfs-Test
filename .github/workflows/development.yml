@@ -33,7 +33,7 @@ jobs:
           export RUNNER=1 SLIMMED=1
           export CFLAGS="-Wno-error=incompatible-function-pointer-types -Wno-error=implicit-function-declaration -Wno-error=implicit-int -Wno-error=int-conversion"
           export OBJCFLAGS="$CFLAGS"
-          gmake -j$(sysctl -n hw.ncpu) dsym package PLATFORM=2
+          gmake -j1 package PLATFORM=2
 
       - name: Upload IPA
         uses: actions/upload-artifact@v4
