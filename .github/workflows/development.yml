@@ -31,9 +31,9 @@ jobs:
           for repo in "AngelAuraMC/amethyst-prebuilt-libraries" "AngelAuraMC/angelauramc-openjdk-build" "PojavLauncherTeam/android-openjdk-build-multiarch"; do
             for tag in $(gh release list -R "$repo" --json tagName -q '.[].tagName' 2>/dev/null); do
               gh release download "$tag" -R "$repo" \
-                --pattern "*jre8*ios*.tar.xz" \
-                --pattern "*jre17*ios*.tar.xz" \
-                --pattern "*jre21*ios*.tar.xz" \
+                --pattern "jre8-ios-aarch64.tar.xz" \
+                --pattern "jre17-ios-aarch64.tar.xz" \
+                --pattern "jre21-ios-aarch64.tar.xz" \
                 -D depends --skip-existing 2>/dev/null || true
             done
           done
