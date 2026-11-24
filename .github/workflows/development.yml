@@ -30,6 +30,7 @@ jobs:
           workflow: build.yml
           path: depends
           workflow_conclusion: success
+          check_artifacts: true
           allow_forks: true
           repo: AngelAuraMC/angelauramc-openjdk-build
           branch: buildjre8
@@ -41,7 +42,8 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           workflow: build.yml
           path: depends
-          workflow_conclusion: completed
+          workflow_conclusion: success
+          check_artifacts: true
           allow_forks: true
           repo: AngelAuraMC/angelauramc-openjdk-build
           branch: buildjre17-21
@@ -53,7 +55,8 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           workflow: build.yml
           path: depends
-          workflow_conclusion: completed
+          workflow_conclusion: success
+          check_artifacts: true
           allow_forks: true
           repo: AngelAuraMC/angelauramc-openjdk-build
           branch: buildjre17-21
