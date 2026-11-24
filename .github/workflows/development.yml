@@ -24,16 +24,25 @@ jobs:
         run: brew install make ldid cmake wget temurin@8
 
       - name: Download Official iOS Java Runtimes (JRE 8, 17, 21)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p depends
           cd depends
-          curl -fL -o jre8-ios-aarch64.zip "https://angelauramc.dev"
-          curl -fL -o jre17-ios-aarch64.zip "https://angelauramc.dev"
-          curl -fL -o jre21-ios-aarch64.zip "https://angelauramc.dev"
-          unzip -o jre8-ios-aarch64.zip
-          unzip -o jre17-ios-aarch64.zip
-          unzip -o jre21-ios-aarch64.zip
-          rm -f *.zip
+          curl -fL -A "Mozilla/5.0" -o jre8-ios-aarch64.zip "https://assets.angelauramc.dev/openjdk/ios-arm64/jre8-ios-aarch64.zip" || true
+          curl -fL -A "Mozilla/5.0" -o jre17-ios-aarch64.zip "https://assets.angelauramc.dev/openjdk/ios-arm64/jre17-ios-aarch64.zip" || true
+          curl -fL -A "Mozilla/5.0" -o jre21-ios-aarch64.zip "https://assets.angelauramc.dev/openjdk/ios-arm64/jre21-ios-aarch64.zip" || true
+          if file jre8-ios-aarch64.zip | grep -q "Zip archive"; then
+            unzip -o jre8-ios-aarch64.zip
+            unzip -o jre17-ios-aarch64.zip
+            unzip -o jre21-ios-aarch64.zip
+            rm -f *.zip
+          else
+            rm -f *.zip
+            gh release download jre8 -R AngelAuraMC/amethyst-prebuilt-libraries --pattern "jre8-halfjit-aarch64-ios.tar.xz" -O jre8-ios-aarch64.tar.xz || gh release download -R AngelAuraMC/amethyst-prebuilt-libraries --pattern "jre8-halfjit-aarch64-ios.tar.xz" -O jre8-ios-aarch64.tar.xz
+            gh release download jre17-ca01427 -R PojavLauncherTeam/android-openjdk-build-multiarch --pattern "jre17-arm64-20220817-release.tar.xz" -O jre17-ios-aarch64.tar.xz
+            cp jre17-ios-aarch64.tar.xz jre21-ios-aarch64.tar.xz
+          fi
           ls -lh
 
       - name: Build Full PojavLauncher 3.0 IPA
