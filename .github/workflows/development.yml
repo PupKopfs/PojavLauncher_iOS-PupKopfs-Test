@@ -28,16 +28,18 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mkdir -p depends
-          for repo in "AngelAuraMC/amethyst-prebuilt-libraries" "AngelAuraMC/angelauramc-openjdk-build" "PojavLauncherTeam/android-openjdk-build-multiarch"; do
-            for tag in $(gh release list -R "$repo" --json tagName -q '.[].tagName' 2>/dev/null); do
-              gh release download "$tag" -R "$repo" \
-                --pattern "jre8-ios-aarch64.tar.xz" \
-                --pattern "jre17-ios-aarch64.tar.xz" \
-                --pattern "jre21-ios-aarch64.tar.xz" \
-                -D depends --skip-existing 2>/dev/null || true
-            done
+          for tag in $(gh release list -R AngelAuraMC/amethyst-prebuilt-libraries --json tagName -q '.[].tagName'); do
+            gh release download "$tag" -R AngelAuraMC/amethyst-prebuilt-libraries \
+              --pattern "*jre8*ios*.tar.xz" \
+              --pattern "*jre17*ios*.tar.xz" \
+              --pattern "*jre21*ios*.tar.xz" \
+              -D depends --skip-existing 2>/dev/null || true
           done
-          ls -lh depends
+          cd depends
+          ls -1 jre8-*.tar.xz | tail -n +2 | xargs rm -f
+          ls -1 jre17-*.tar.xz | tail -n +2 | xargs rm -f
+          ls -1 jre21-*.tar.xz | tail -n +2 | xargs rm -f
+          ls -lh
 
       - name: Build Full PojavLauncher 3.0 IPA
         run: |
