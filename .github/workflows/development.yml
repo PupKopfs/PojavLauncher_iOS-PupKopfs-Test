@@ -26,7 +26,6 @@ jobs:
 
       - name: Register all 3 JDKs for macOS java_home & install tools
         run: |
-          # Link all installed Temurin JDKs into macOS standard JVM folder so /usr/libexec/java_home finds all 3
           sudo mkdir -p /Library/Java/JavaVirtualMachines
           for jdk in "$RUNNER_TOOL_CACHE"/Java_Temurin-Hotspot_jdk/*/*; do
             if [ -d "$jdk/Contents/Home" ]; then
@@ -35,13 +34,12 @@ jobs:
           done
           /usr/libexec/java_home -V
 
-          # Install GNU make & link to /opt/homebrew/bin/gmake for Xcode
           brew install make xcodegen ldid cmake ninja || true
           sudo mkdir -p /opt/homebrew/bin
           sudo ln -sf "$(which gmake)" /opt/homebrew/bin/gmake
           sudo ln -sf "$(which ldid)" /opt/homebrew/bin/ldid
 
-      - name: Build PojavLauncher & Package IPA
+      - name: Build Natives, JREs & PojavLauncher IPA
         run: |
           set -e
           
@@ -50,31 +48,34 @@ jobs:
             xcodegen generate
           fi
 
-          # 2. Run Makefile setup/deploy if present
+          # 2. Build Natives & JREs sequentially first so libawt_xawt.dylib exists before packaging
           if [ -f "Makefile" ]; then
-            gmake deploy || gmake package || gmake all || true
+            gmake natives || true
+            gmake jre || true
+            gmake all || true
           fi
 
-          # 3. Check if Makefile already produced an .ipa
-          FOUND_IPA=$(find . -maxdepth 4 -name "*.ipa" | head -n 1)
-          
-          # 4. Build specifically with the iOS SDK & bundle JREs
-          if [ -z "$FOUND_IPA" ]; then
-            xcodebuild \
-              -project PojavLauncher.xcodeproj \
-              -scheme PojavLauncher \
-              -configuration Release \
-              -sdk iphoneos \
-              -arch arm64 \
-              ONLY_ACTIVE_ARCH=NO \
-              SUPPORTED_PLATFORMS=iphoneos \
-              EFFECTIVE_PLATFORM_NAME=-iphoneos \
-              CODE_SIGN_IDENTITY="" \
-              CODE_SIGNING_REQUIRED=NO \
-              CODE_SIGNING_ALLOWED=NO \
-              CONFIGURATION_BUILD_DIR="$RUNNER_TEMP/Build" \
-              clean build
+          # 3. Build PojavLauncher iOS App
+          xcodebuild \
+            -project PojavLauncher.xcodeproj \
+            -scheme PojavLauncher \
+            -configuration Release \
+            -sdk iphoneos \
+            -arch arm64 \
+            ONLY_ACTIVE_ARCH=NO \
+            SUPPORTED_PLATFORMS=iphoneos \
+            EFFECTIVE_PLATFORM_NAME=-iphoneos \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO \
+            CONFIGURATION_BUILD_DIR="$RUNNER_TEMP/Build" \
+            clean build
 
+          # 4. Package into an unsigned .ipa
+          FOUND_IPA=$(find . "$RUNNER_TEMP" -maxdepth 4 -name "*.ipa" | head -n 1)
+          if [ -n "$FOUND_IPA" ]; then
+            cp "$FOUND_IPA" "$GITHUB_WORKSPACE/PojavLauncher.ipa"
+          else
             mkdir -p "$RUNNER_TEMP/Payload"
             APP_BUNDLE=$(find "$RUNNER_TEMP/Build" -maxdepth 2 -name "*.app" | head -n 1)
             cp -r "$APP_BUNDLE" "$RUNNER_TEMP/Payload/"
@@ -83,8 +84,6 @@ jobs:
             
             cd "$RUNNER_TEMP"
             zip -qr "$GITHUB_WORKSPACE/PojavLauncher.ipa" Payload
-          else
-            cp "$FOUND_IPA" "$GITHUB_WORKSPACE/PojavLauncher.ipa"
           fi
 
       - name: Upload PojavLauncher IPA
