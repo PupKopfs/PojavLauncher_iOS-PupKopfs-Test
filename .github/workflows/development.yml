@@ -1,4 +1,4 @@
-name: Build Full PojavLauncher Nightly IPA
+name: Build PojavLauncher 3.0 Nightly IPA
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    name: Build Full iOS IPA
+    name: Build iOS IPA
     runs-on: macos-15-intel
 
     steps:
@@ -26,27 +26,17 @@ jobs:
       - name: Install build dependencies
         run: brew install make ldid cmake wget temurin@8
 
-      - name: Download Java Runtimes (JRE 8, 17, 21) for Full IPA
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          mkdir -p depends
-          gh release download -R PojavLauncherTeam/android-openjdk-build-multiarch --pattern "*ios-aarch64.tar.xz" -D depends || true
-          ls -lh depends
-
-      - name: Build Full iOS IPA
+      - name: Build PojavLauncher 3.0 IPA
         run: |
           export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
           export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)
-          export RUNNER=1
+          export RUNNER=1 SLIMMED=1
           export CFLAGS="-Wno-error=incompatible-function-pointer-types -Wno-error=implicit-function-declaration -Wno-error=implicit-int -Wno-error=int-conversion"
           export OBJCFLAGS="$CFLAGS"
-          gmake -j1 dsym package PLATFORM=2
+          gmake -j$(sysctl -n hw.ncpu) dsym package PLATFORM=2
 
-      - name: Upload Full IPA
+      - name: Upload IPA
         uses: actions/upload-artifact@v4
-        if: always()
         with:
-          name: net.kdt.pojavlauncher-full-ios.ipa
-          path: artifacts/net.kdt.pojavlauncher-*-ios.ipa
-          if-no-files-found: warn
+          name: net.kdt.pojavlauncher.slimmed-3.0-ios.ipa
+          path: artifacts/*.ipa
