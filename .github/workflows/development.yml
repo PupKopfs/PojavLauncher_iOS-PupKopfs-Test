@@ -1,4 +1,4 @@
-name: Build Full PojavLauncher Nightly IPA
+name: PojavLauncher Dev
 
 on:
   workflow_dispatch:
@@ -25,15 +25,14 @@ jobs:
       - name: Install build dependencies
         run: |
           brew install make ldid cmake wget temurin@8
-          export PATH="/opt/homebrew/bin:$PATH"
 
       - name: Download Java Runtimes (JRE 8, 17, 21) for Full IPA
         run: |
           mkdir -p depends
           cd depends
-          curl -fL -o jre8-ios-aarch64.tar.xz "https://github.com" || true
-          curl -fL -o jre17-ios-aarch64.tar.xz "https://github.com" || true
-          curl -fL -o jre21-ios-aarch64.tar.xz "https://github.com" || true
+          curl -fL -o jre8-ios-aarch64.tar.xz "https://github.com"
+          curl -fL -o jre17-ios-aarch64.tar.xz "https://github.com"
+          curl -fL -o jre21-ios-aarch64.tar.xz "https://github.com"
           ls -lh
 
       - name: Build Full iOS IPA
@@ -41,7 +40,9 @@ jobs:
           export PATH="/opt/homebrew/bin:$PATH"
           export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)
           export RUNNER=1
-          gmake -j$(sysctl -n hw.ncpu) dsym package PLATFORM=2
+          export CFLAGS="-Wno-error=incompatible-function-pointer-types -Wno-error=implicit-function-declaration -Wno-error=implicit-int -Wno-error=int-conversion"
+          export OBJCFLAGS="$CFLAGS"
+          gmake -j1 dsym package PLATFORM=2
 
       - name: Upload Full IPA
         uses: actions/upload-artifact@v4
