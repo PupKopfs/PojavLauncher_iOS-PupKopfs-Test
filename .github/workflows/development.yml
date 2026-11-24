@@ -1,4 +1,4 @@
-name: Build PojavLauncher 3.0 Nightly IPA
+name: Build Full PojavLauncher 3.0 Nightly IPA
 
 on:
   push:
@@ -6,7 +6,7 @@ on:
 
 jobs:
   build:
-    name: Build iOS IPA
+    name: Build Full iOS IPA
     runs-on: macos-15-intel
 
     steps:
@@ -23,24 +23,49 @@ jobs:
       - name: Install build dependencies
         run: brew install make ldid cmake wget temurin@8
 
-      - name: Prepare JRE archives for Makefile
-        run: |
-          mkdir -p depends/empty_jre
-          tar -cJf depends/jre8-ios-aarch64.tar.xz -C depends/empty_jre .
-          tar -cJf depends/jre17-ios-aarch64.tar.xz -C depends/empty_jre .
-          tar -cJf depends/jre21-ios-aarch64.tar.xz -C depends/empty_jre .
-          rm -rf depends/empty_jre
+      - name: Get JRE8 (Official AngelAuraMC)
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: build.yml
+          path: depends
+          workflow_conclusion: success
+          repo: AngelAuraMC/openjdk-build-multiarch
+          branch: buildjre8
+          name: jre8-ios-aarch64
 
-      - name: Build PojavLauncher 3.0 IPA
+      - name: Get JRE17 (Official AngelAuraMC)
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: build.yml
+          path: depends
+          workflow_conclusion: completed
+          repo: AngelAuraMC/openjdk-build-multiarch
+          branch: buildjre17-21
+          name: jre17-ios-aarch64
+
+      - name: Get JRE21 (Official AngelAuraMC)
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: build.yml
+          path: depends
+          workflow_conclusion: completed
+          repo: AngelAuraMC/openjdk-build-multiarch
+          branch: buildjre17-21
+          name: jre21-ios-aarch64
+
+      - name: Build Full PojavLauncher 3.0 IPA
         run: |
           export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
           export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)
           export CFLAGS="-Wno-error=incompatible-function-pointer-types -Wno-error=implicit-function-declaration -Wno-error=implicit-int -Wno-error=int-conversion"
           export OBJCFLAGS="$CFLAGS"
-          gmake -j$(sysctl -n hw.ncpu) package PLATFORM=2 RUNNER=1 SLIMMED=1
+          gmake -j$(sysctl -n hw.ncpu) package PLATFORM=2 RUNNER=1
 
-      - name: Upload IPA
+      - name: Upload Full IPA
         uses: actions/upload-artifact@v4
         with:
-          name: net.kdt.pojavlauncher.slimmed-3.0-ios.ipa
+          name: net.kdt.pojavlauncher-full-3.0-ios.ipa
           path: artifacts/*.ipa
