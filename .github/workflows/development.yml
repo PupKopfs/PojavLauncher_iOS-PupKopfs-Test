@@ -27,11 +27,13 @@ jobs:
         run: |
           mkdir -p depends
           cd depends
-          for ver in 8 17 21; do
-            curl -fL -o "jre${ver}-ios-aarch64.zip" "https://angelauramc.dev{ver}-ios-aarch64.zip"
-            unzip -o "jre${ver}-ios-aarch64.zip"
-            rm -f "jre${ver}-ios-aarch64.zip"
-          done
+          curl -fL -o jre8-ios-aarch64.zip "https://angelauramc.dev"
+          curl -fL -o jre17-ios-aarch64.zip "https://angelauramc.dev"
+          curl -fL -o jre21-ios-aarch64.zip "https://angelauramc.dev"
+          unzip -o jre8-ios-aarch64.zip
+          unzip -o jre17-ios-aarch64.zip
+          unzip -o jre21-ios-aarch64.zip
+          rm -f *.zip
           ls -lh
 
       - name: Build Full PojavLauncher 3.0 IPA
