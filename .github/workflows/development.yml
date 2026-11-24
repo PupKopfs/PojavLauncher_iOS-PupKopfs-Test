@@ -1,6 +1,7 @@
 name: Build Full PojavLauncher Nightly IPA
 
 on:
+  push:
   workflow_dispatch:
 
 jobs:
