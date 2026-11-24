@@ -31,16 +31,16 @@ jobs:
           for repo in "AngelAuraMC/amethyst-prebuilt-libraries" "AngelAuraMC/angelauramc-openjdk-build" "PojavLauncherTeam/android-openjdk-build-multiarch"; do
             for tag in $(gh release list -R "$repo" --limit 20 --json tagName -q '.[].tagName' 2>/dev/null); do
               gh release download "$tag" -R "$repo" \
-                --pattern "*ios*.tar.xz" \
-                --pattern "*arm64*.tar.xz" \
-                --pattern "*aarch64*.tar.xz" \
+                --pattern "jre8*.tar.xz" \
+                --pattern "jre17*.tar.xz" \
+                --pattern "jre21*.tar.xz" \
                 -D depends/raw --skip-existing 2>/dev/null || true
             done
           done
           ls -lh depends/raw
-          cp "$(ls depends/raw/*8*.tar.xz | grep -iv android | head -n 1)" depends/jre8-ios-aarch64.tar.xz
-          cp "$(ls depends/raw/*17*.tar.xz | grep -iv android | head -n 1)" depends/jre17-ios-aarch64.tar.xz
-          cp "$(ls depends/raw/*21*.tar.xz | grep -iv android | head -n 1)" depends/jre21-ios-aarch64.tar.xz
+          cp "$(ls depends/raw/jre8*.tar.xz | grep -iv android | head -n 1)" depends/jre8-ios-aarch64.tar.xz
+          cp "$(ls depends/raw/jre17*.tar.xz | grep -iv android | head -n 1)" depends/jre17-ios-aarch64.tar.xz
+          cp "$(ls depends/raw/jre21*.tar.xz | grep -iv android | head -n 1)" depends/jre21-ios-aarch64.tar.xz
           rm -rf depends/raw
           ls -lh depends
 
