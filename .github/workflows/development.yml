@@ -15,8 +15,27 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install build dependencies & fix /opt/homebrew path
+      - name: Setup JDK 8, 17, and 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: |
+            8
+            17
+            21
+
+      - name: Register all 3 JDKs for macOS java_home & install tools
         run: |
+          # Link all installed Temurin JDKs into macOS standard JVM folder so /usr/libexec/java_home finds all 3
+          sudo mkdir -p /Library/Java/JavaVirtualMachines
+          for jdk in "$RUNNER_TOOL_CACHE"/Java_Temurin-Hotspot_jdk/*/*; do
+            if [ -d "$jdk/Contents/Home" ]; then
+              sudo ln -sfn "$jdk" "/Library/Java/JavaVirtualMachines/$(basename "$jdk")-$(basename "$(dirname "$jdk")").jdk"
+            fi
+          done
+          /usr/libexec/java_home -V
+
+          # Install GNU make & link to /opt/homebrew/bin/gmake for Xcode
           brew install make xcodegen ldid cmake ninja || true
           sudo mkdir -p /opt/homebrew/bin
           sudo ln -sf "$(which gmake)" /opt/homebrew/bin/gmake
