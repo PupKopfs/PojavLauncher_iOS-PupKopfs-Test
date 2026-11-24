@@ -6,7 +6,7 @@ on:
 jobs:
   build:
     name: Build Full iOS IPA
-    runs-on: macos-15
+    runs-on: macos-15-intel
 
     steps:
       - name: Checkout repository
@@ -37,7 +37,7 @@ jobs:
 
       - name: Build Full iOS IPA
         run: |
-          export PATH="/opt/homebrew/bin:$PATH"
+          export PATH="/opt/homebrew/bin:/usr/local/bin:$PATH"
           export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)
           export RUNNER=1
           export CFLAGS="-Wno-error=incompatible-function-pointer-types -Wno-error=implicit-function-declaration -Wno-error=implicit-int -Wno-error=int-conversion"
